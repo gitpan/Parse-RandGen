@@ -1,0 +1,17 @@
+MANIFEST
+Makefile.PL
+NEWS
+README
+RandGen.pm
+RandGen/CharClass.pm
+RandGen/Condition.pm
+RandGen/Grammar.pm
+RandGen/Literal.pm
+RandGen/Production.pm
+RandGen/Regexp.pm
+RandGen/Rule.pm
+RandGen/Subrule.pm
+t/05_regex_examples.t
+t/10_regex_pick.t
+t/20_grammar_examples.t
+t/test_utils.pl

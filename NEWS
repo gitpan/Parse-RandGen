@@ -1,0 +1,23 @@
+Parse::RandGen NEWS --  history of user-visible changes.
+Copyright (C) 2003 Jeff Dutton.
+See the end for copying conditions.
+
+The contributors that suggested a given feature is shown in [].
+
+* Initial release of Parse::RandGen 0.1 8/19/2003
+
+****	Initial release
+
+----------------------------------------------------------------------
+$Revision: #1 $$Date: 2003/08/20 $$Author: jdutton $
+----------------------------------------------------------------------
+Copyright information:
+
+Copyright (C) 2003 Jeff Dutton
+
+   See the README file included with this file for licencing information.
+
+Local variables:
+mode: outline
+paragraph-separate: "[ 	]*$"
+end:

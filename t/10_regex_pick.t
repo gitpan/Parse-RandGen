@@ -1,6 +1,10 @@
-#!/usr/local/bin/perl -w
-# $Revision: #3 $$Date: 2003/08/20 $$Author: wsnyder $
+#!/usr/bin/perl -w
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 # DESCRIPTION: Perl ExtUtils: Type 'make test' to test this package
+#
+# Copyright 2003-2005 by Jeff Dutton.  This program is free software;
+# you can redistribute it and/or modify it under the terms of either the GNU
+# General Public License or the Perl Artistic License.
 
 use strict;
 use Data::Dumper;
@@ -8,12 +12,15 @@ use Test;
 use vars qw(@TestREs $TestsPerRE);
 
 BEGIN {
-    $TestsPerRE = 10;  # Number of random strings chosen and tested for each regular expression
+    $TestsPerRE = 20;  # Number of random strings chosen and tested for each regular expression
     @TestREs = ( qr/foo(bar|baz){3}/,
 		 qr'[\-\_\.\!\~\*\'\(\)]+',
 		 qr"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
 		 qr"don't mess with texas!"i,
-		 qr/^hello$/i,
+		 qr/^cacaw$/i,
+		 qr/^Hello{3,}! La la la!$/,
+		 qr/^X{2,3}$/,
+		 qr/  Spaces    \s   Don\'t  \s  Matter/x,
 		 qr/fo?oz/,
 		 qr//,   # FIX
 		 );
@@ -42,10 +49,10 @@ foreach my $testRE (@TestREs) {
 	    if (($matches == $doMatch)
 		|| !$doMatch #FIX - currently unable to guarantee a mismatch...  You can always get lucky ;-)
 		) {
-		printf("Success: %-20s regexp got a %-6s for the input %s%s\n",
+		printf("Success: %-20s regexp picked a %-6s for the input %s%s\n",
 		       $testRE, ($doMatch?"MATCH":"MISS"), $dispData, ((!$doMatch&&$matches)?"  (the pick was for a MISS, but you can never be sure)":""));
 	    } else {
-		$error = sprintf("%%Error: %-20s regexp got a %-6s for the input %s!\n",
+		$error = sprintf("%%Error: %-20s regexp picked a %-6s for the input %s!\n",
 				 $testRE, ($doMatch?"MATCH":"MISS"), $dispData);
 		last TEST_LOOP;
 	    }

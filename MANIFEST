@@ -2,6 +2,7 @@ MANIFEST
 Makefile.PL
 NEWS
 README
+readme.texi
 RandGen.pm
 RandGen/CharClass.pm
 RandGen/Condition.pm
@@ -11,6 +12,7 @@ RandGen/Production.pm
 RandGen/Regexp.pm
 RandGen/Rule.pm
 RandGen/Subrule.pm
+t/00_pod.t
 t/05_regex_examples.t
 t/10_regex_pick.t
 t/20_grammar_examples.t

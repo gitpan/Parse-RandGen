@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -71,14 +71,23 @@ sub pick {
     my $ruleName = $self->element();
     defined($rule) or confess("Subrule::pick():  $ruleName subrule cannot be found in the grammar!\n");
     my $maxCnt = $self->max() || (1<<int(rand(3)));
-    my $matchCnt = $self->min() + int(rand($maxCnt-$self->min()+1));
+    my $minCnt = $self->min() || ($self->containsVals(%args) ? 1 : 0);
+    my $matchCnt = $minCnt + int(rand($maxCnt-$minCnt+1));
     my $val = "";
     for (my $i=0; $i<$matchCnt; $i++) {
 	my $matchThis = ($args{match} || ($i != 0))?1:0;
-	$val .= $rule->pick(match=>$matchThis);
+	$val .= $rule->pick(%args, match=>$matchThis);
     }
     #print ("Parse::RandGen::Subrule::pick(match=>$args{match}) on the rule \"", $rule->dumpHeir(), "\" has a value of ", $self->dumpVal($val), "\n");
     return ($val);
+}
+
+# Returns true (1) if this subrule contains any of the rules specified by the "vals" argument
+sub containsVals {
+    my $self = shift or confess("%Error:  Cannot call without a valid object!");
+    my %args = ( vals => { },   # Hash of values of various hard-coded sub-rules (by name)
+		 @_ );
+    return $self->subrule()->containsVals(%args);
 }
 
 ######################################################################
@@ -94,14 +103,14 @@ Parse::RandGen::Subrule - Subrule Condition element, that references a Rule obje
 
 =head1 DESCRIPTION
 
-=over 4
-
 Subrule is a non-terminal Condition element that references a Rule object and contains a match quantifier
 (how many times the Rule must match for the Condition to be satisfied).
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new Subrule.  The first argument (required) is the Rule that must be satisfied for the condition to
 match (either a Rule object reference or the name of the rule).
@@ -114,11 +123,11 @@ must match for the condition to match.
 The "quant" quantifier argument can also be used to specify "min" and "max".  The values are the familiar '+', '?',
 or '*'  (also can be 's', '?', or 's?', respectively).
 
-=head2 element, min, max
+=item element, min, max
 
 Returns the Condition's attribute of the same name.
 
-=head2 subrule
+=item subrule
 
 Returns a reference to the Condition's Rule object.
 

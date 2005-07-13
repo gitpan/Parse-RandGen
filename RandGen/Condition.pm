@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -38,7 +38,7 @@ sub new {
     my $self = {
 	_element => $element,    # The element for the condition that must match
 	_min => undef,           # The minimum number of times that the element must match for the condition to be true
-	_max => undef,           # The maximum " " ...
+	_max => undef,           # The maximum (inclusive) number of times that the element must match for the condition to be true
 	_greedy => undef,        # By default, conditions are greedy (for pick()ing only, for parsing all conditions are greedy)
 	_production => undef,    # The "parent" production that this belongs to...
     };
@@ -115,6 +115,7 @@ sub subrule { return undef; }  # Default
 sub isSubrule { return 0; }    # Default
 sub isTerminal { return 1; }   # Default
 sub isQuantSupported { return 0; }   # Default (Regexp and Literal classes dont support)
+sub containsVals { return 0; } # Default (only Subrule supports)
 
 sub min {
     my $self = shift or confess "%Error:  Cannot call min() without a valid object!";
@@ -199,13 +200,13 @@ Parse::RandGen::Condition - Base class for condition elements that contain an el
 
 =head1 DESCRIPTION
 
-=over 4
-
 There are several specific Condition classes:  Subrule, Literal, CharClass, and Regexp.  Literals and CharClass's are terminal Conditions.
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 This method cannot be called directly from the Condition class (it must be called on a specific derived Condition class).
 The first argument (required) is the condition element.  The required element type depends on the specific Condition
@@ -226,38 +227,38 @@ Any unknown named arguments are treated as user-defined fields.  They are stored
   Parse::RandGen::Subrule->new("match_rule", quant=>'+' );    # This indirect reference to the "match_rule" rule requires a Grammar for lookup.
   Parse::RandGen::Subrule->new($myRuleObjRef, min=>2, max=>3 );
 
-=head2 pick
+=item pick
 
 Returns random data for the Condition.  Takes an optional named pair argument "match" that specifies whether the data
 chosen should match the Condition element or not.
 
   $conditionObject->pick( match=>1 );
 
-=head2 element, min, max
+=item element, min, max
 
 Returns the Condition's attribute of the same name.
 
-=head2 isSubrule
+=item isSubrule
 
 Returns true if the given Condition is a Subrule.
 
-=head2 isTerminal
+=item isTerminal
 
 Returns true if the given Condition is a terminal (CharClass or Literal).
 
-=head2 subrule
+=item subrule
 
 Returns a reference to the Condition's Rule object (or undef if !isSubrule()).
 
-=head2 production
+=item production
 
 Returns the Parse::RandGen::Production object that this Condition belongs to.
 
-=head2 rule
+=item rule
 
 Returns the Parse::RandGen::Rule object that this Condition's Production belongs to (returns production()->rule()).
 
-=head2 grammar
+=item grammar
 
 Returns the Parse::RandGen::Grammar object that this production belongs to (returns production()->rule()->grammar()).
 

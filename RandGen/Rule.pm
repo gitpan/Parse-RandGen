@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -22,6 +22,7 @@ package Parse::RandGen::Rule;
 require 5.006_001;
 use Carp;
 use Parse::RandGen;
+use Data::Dumper;  # FIX - debug only
 use strict;
 use vars qw($Debug);
 $Debug = $Parse::RandGen::Debug;
@@ -39,7 +40,8 @@ sub new {
     bless $self, ref($class)||$class;
 
     $self->{_name} = shift;
-    !defined($self->{_name}) or ($self->{_name} =~ /\w+/) or confess("The specified rule name must be exclusively alphanumeric characters (", $self->{_name}, ")!");
+    !defined($self->{_name}) or ($self->{_name} =~ /^[a-z_]\w*$/i)
+	or confess("The specified rule name must be exclusively alphanumeric characters (", $self->{_name}, ")!");
     return($self);
 }
 
@@ -136,11 +138,38 @@ sub dumpHeir {
 
 sub pick {
     my $self = shift or confess("%Error:  Cannot call without a valid object!");
-    my %args = ( match=>1, # Default is to pick matching data
+    my %args = ( match=>1,      # Default is to pick matching data
+		 vals => { },   # Hash of values of various hard-coded sub-rules (by name)
 		 @_ );
-    my @prods = $self->productions();
+
+    # Return explicitly specified value (if specified by name or reference to $self)
+    return $args{vals}{$self->name()} if (defined($self->name()) && defined($args{vals}{$self->name()}));
+    return $args{vals}{$self} if defined($args{vals}{$self});
+
+    my @prods;
+    foreach my $prod ($self->productions()) {
+	push(@prods, $prod) if $prod->containsVals(%args);
+    }
+    @prods = $self->productions() unless(@prods);  # If {vals} does not specify any production of this rule, pick from all productions
+
     my $prodNum = int(rand($#prods+1));
     return( $prods[$prodNum]->pick(%args) );
+}
+
+# Returns true (1) if this rule is or has any explicitly specified values in the "vals" argument
+sub containsVals {
+    my $self = shift or confess("%Error:  Cannot call without a valid object!");
+    my %args = ( vals => { },   # Hash of values of various hard-coded sub-rules (by name)
+		 @_ );
+
+    # Return true if this rule is explicitly specified (if specified by name or reference to $self)
+    return 1 if (defined($self->name()) && defined($args{vals}{$self->name()}));
+    return 1 if defined($args{vals}{$self});
+
+    foreach my $prod ($self->productions()) {
+	return 1 if $prod->containsVals(%args);
+    }
+    return 0;
 }
 
 ######################################################################
@@ -188,8 +217,6 @@ Parse::RandGen::Rule - Grammatical Rule object
 
 =head1 DESCRIPTION
 
-=over 4
-
 A Rule matches if any one of its Productions match the input text.
 In BNF notation, the relationship of Rules and Productions is:
 
@@ -209,7 +236,9 @@ The two productions in this example could respectively match:
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new Rule.  The Rule name is the only required argument.  Productions are optional.
 
@@ -232,17 +261,32 @@ Creates a new Rule.  The Rule name is the only required argument.  Productions a
                   cond => q{')'}, ],
     );
 
-=head2 name
+=item name
 
 Return the name of the Rule.
 
-=head2 grammar
+=item grammar
 
 Returns a reference to the Grammar that the Rule belongs to.
 
-=head2 pick
+=item pick
 
-Takes a "match" boolean argument.  The function returns random text that would match (or not match) the given rule.
+Randomly generate data (text) that matches (or does not) the rule.
+
+Takes a "match" boolean argument that specifies whether to match the regular expression
+or deliberately not match it.
+
+Also takes a "vals" hash argument that has pairs of subrules (name or reference) and their
+desired value.  This allows the generated data to have user-specified constraints
+while allowing the rest of the rule to choose random data.  If "match" is
+false, the user-specified "vals" are still used (which may cause the data
+to match even though it was not supposed to).  If a user-specified value is
+given, then productions that do not reference that rule are not chosen (unless
+no productions reference the rule).
+
+    Example:
+        $re->pick(match=>0, vals=>{ file=>"Rule", extension=>"pm" });
+
 
 =back
 

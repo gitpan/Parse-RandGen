@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -51,13 +51,33 @@ sub pick {
     my $self = shift or confess("%Error:  Cannot call without a valid object!");
     my %args = ( match=>1, # Default is to pick matching data
 		 @_ );
-    my $val = $self->element();
-    if (!$args{match}) {
-	# Change case of first character
-	$val = lcfirst($val);
-	$val = ucfirst($val) unless ($val ne $self->element());
-	substr($val, 0, 1) = chr( (ord(substr($val, 0, 1)) + 1) % 256 ) unless ($val ne $self->element());
+    my $val = $self->element();  # Reset to element before each attempt
+    my $keepTrying = 10;
+    my $length = length($self->element());
+    confess "Literal length is 0!  This should never be!\n" unless ($length);
+
+    while (!$args{match} && $keepTrying--) {
+	$val = $self->element();  # Reset to element before each corruption attempt
+	my $method = int(rand(4));  # Method of corruption
+	my $char = int(rand($length));  # Which character
+
+	if ($method == 0) {
+	    # Try changing the case of first character
+	    substr($val, $char, 1) = lc(substr($val, $char, 1));
+	    substr($val, $char, 1) = uc(substr($val, $char, 1)) unless ($val ne $self->element());
+	} elsif ($method == 1) {
+	    # Randomly change the value of one of the characters
+	    substr($val, $char, 1) = chr( (ord(substr($val, $char, 1)) + int(rand(256))) % 256 ) unless ($val ne $self->element());
+	} elsif ($method == 2) {
+	    # Insert a random character into the literal
+	    $char = int(rand($length+1));  # Where to insert character
+	    substr($val, $char, 0) = int(rand(256)) # Insert random character
+	} else {
+	    # Remove a character
+	    substr($val, $char, 1) = '';
+	}
     }
+
     my $elem = $self->element();
     #print ("Parse::RandGen::Literal($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
     return ($val);
@@ -82,19 +102,19 @@ Parse::RandGen::Literal - Literal terminal Condition element
 
 =head1 DESCRIPTION
 
-=over 4
-
 Literal is a terminal Condition element that matches the literal.
 The only choice for picking a good Literal is the literal itself.
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new Literal.  The first argument (required) is the literal element (e.g. "Hello Washington!").
 All other arguments are named pairs.
 
-=head2 element
+=item element
 
 Returns the Literal element (i.e. the literal itself).
 

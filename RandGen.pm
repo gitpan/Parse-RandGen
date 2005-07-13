@@ -1,7 +1,7 @@
-# $Revision: #4 $$Date: 2003/08/22 $$Author: jdutton $
+# $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -27,7 +27,7 @@ use Data::Dumper;
 use strict;
 use vars qw($VERSION $Debug);
 
-$VERSION = '0.100';
+$VERSION = '0.200';
 #$Debug = 1;  # Set to turn on debugging
 
 # Use all of the components of this package (so each module doesn't have to replicate the code)
@@ -53,8 +53,6 @@ Parse::RandGen - Package for the creation of randomly generated parse data
 
 =head1 DESCRIPTION
 
-=over 4
-
 This package contains modules that can be used to randomly generate parse data
 (that will either match or not match the grammatical specification).  The primary
 use for randomly generated parse data is to test parsers (or just regular expressions).
@@ -68,8 +66,6 @@ strings such as 'foo', 'foobaz', 'foobazbarbarbaz', etc....
 Additionally, the package may be used to build a BNF style Grammar object, composed of Rules,
 Productions, and various types of Conditions (Literals, Regexps, Subrules) and randomly create
 data based on the grammatical specification.
-
-=back
 
 =head1 SEE ALSO
 

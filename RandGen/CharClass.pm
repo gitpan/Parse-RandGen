@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -47,20 +47,36 @@ sub pick {
     my $self = shift or confess ("%Error:  Cannot call without a valid object!");
     my %args = ( match=>1, # Default is to pick matching data
 		 @_ );
-    my $maxCnt = $self->max() || (1<<int(rand(6)));
-    my $minCnt = $self->min();
-    if (!$args{match}) {
-	# If not matching, make sure minCnt allows a mismatch
-	if ($minCnt) {  $minCnt = 0; }
-	else { $minCnt = 1; }
+    my ($corruptCnt, $corruptData) = (0, 0);
+    if (!$args{match} && !$self->zeroOrMore()) {
+	if (int(rand(2))) {
+	    $corruptData = 1;
+	} else {
+	    $corruptCnt = 1;
+	}
     }
-    my $matchCnt = $self->min() + int(rand($maxCnt-$self->min()+1));
-    my $badOne = int(rand($matchCnt));
+
+    my ($minCnt, $maxCnt);
+    if ($corruptCnt) {
+	if ((int(rand(2)) || !$self->max()) && $self->min()) {
+	    # Choose less than the minimum count (too few)
+	    ($minCnt, $maxCnt) = (0, $self->min()-1);
+	} else {
+	    # Choose more than the maximum count (too many)
+	    ($minCnt, $maxCnt) = ($self->max()+1, $self->max()+4);
+	}
+    } else {
+	$maxCnt = $self->max() || ($self->min() + int(rand(32)));
+	$minCnt = $self->min();
+    }
+
+    my $matchCnt = $minCnt + int(rand($maxCnt-$minCnt+1));
+    my $badOne = $corruptData ? int(rand($matchCnt)) : undef;
 
     my $min; my $max;
     my $val = "";
     for (my $i=0; $i < $matchCnt; $i++) {
-	if (!$args{match} && ($i==$badOne)) {
+	if (defined($badOne) && ($i==$badOne)) {
 	    $min = $self->{_charsetEndOffset};
 	    $max = 256;
 	} else {
@@ -110,8 +126,6 @@ Parse::RandGen::CharClass - Character class (i.e. [a-f0-9]) terminal Condition e
 
 =head1 DESCRIPTION
 
-=over 4
-
 CharClass is a terminal Condition element that models a character class (e.g. [0-9a-fA-f], [^-\n\r], [AaBbCcDd], etc...).
 
 Internally, the character class is broken down into a 256 character long string and an offset.
@@ -124,7 +138,9 @@ ref count the same memory, instead of duplicating it).
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new CharClass.  The first argument (required) is the character class element (e.g. qr/[a-z0-9]/).
 The character class element consists of a compiled regular expression that matches only one character.
@@ -136,7 +152,7 @@ must match for the condition to match.
 The "quant" quantifier argument can also be used to specify "min" and "max".  The values are the familiar '+', '?',
 or '*'  (also can be 's', '?', or 's?', respectively).
 
-=head2 element, min, max
+=item element, min, max
 
 Returns the CharClass's attribute of the same name.
 

@@ -1,7 +1,7 @@
-# $Revision: #2 $$Date: 2003/08/20 $$Author: jdutton $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -172,15 +172,39 @@ sub dumpHeir {
 
 sub pick {
     my $self = shift or confess("%Error:  Cannot call without a valid object!");
-    my %args = ( match=>1, # Default is to pick matching data
+    my %args = ( match=>1,      # Default is to pick matching data
+		 vals => { },   # Hash of values of various hard-coded sub-rules (by name)
 		 @_ );
     my @conds = $self->conditions();
-    my $badNum = int(rand($#conds+1));
+    my $badCond;
     my $val = "";
-    for (my $i=0; $i <= $#conds; $i++) {
-	$val .= $conds[$i]->pick(match=>(($args{match} || ($i!=$badNum))?1:0));
+
+    if (!$args{match}) {
+	my @badConds;
+	foreach my $cond (@conds) {
+	    next if ($cond->isQuantSupported() && $cond->zeroOrMore()); # Cannot corrupt
+	    push(@badConds, $cond);
+	}
+	my $i = int(rand($#badConds+1));
+	$badCond = $badConds[$i];
     }
+
+    for (my $i=0; $i <= $#conds; $i++) {
+	$val .= $conds[$i]->pick(%args, match=>($args{match} || ((defined($badCond) && ($badCond==$conds[$i]))?0:1)) );
+    }
+
     return( $val );
+}
+
+# Returns true (1) if this production contains any of the rules specified by the "vals" argument
+sub containsVals {
+    my $self = shift or confess("%Error:  Cannot call without a valid object!");
+    my %args = ( vals => { },   # Hash of values of various hard-coded sub-rules (by name)
+		 @_ );
+    foreach my $cond ($self->conditions()) {
+	return 1 if $cond->containsVals(%args);
+    }
+    return 0;
 }
 
 ######################################################################
@@ -219,6 +243,7 @@ sub conditions {
 
 ######################################################################
 #### Private Functions
+
 sub _dumpParseFunction {
     my $self = shift or confess("%Error:  Cannot call without a valid object!");
     my $output = "\n\t\t\t   {\t";
@@ -228,27 +253,51 @@ sub _dumpParseFunction {
 	$output .= $self->{_action} . " }";
 	return $output;
     }
-
     # Determine whether this is a single terminal production or not
     my @conds = @{$self->{_conditions}};
     my $ind = 1;  # Index 0 is the rule name
     $output .= 'my $val=""; my $obj={val=>undef,offset=>$itempos[1]{offset}{from},len=>0,rules=>{}};';
     foreach my $cond (@conds) {
 	$output .= $indent;
-	my $subrule = $cond->isSubrule() ? $cond->subrule()->name() : "";
+	my $sName = $cond->isSubrule() ? $cond->subrule()->name() : "";   # Name of subrule, if subrule...
+	my $sKeep =  $sName ? $cond->subrule()->{keep}||"" : "";   # Keep this subrule?
+	my $sParse = $sName ? $cond->subrule()->{parse}||"" : "";  # Parse this subrule (preserve heirarchy beneath it)
 	if ($cond->once()) {
-	    #$output .= " \$val.=\$item[$ind];";
-	    if ($subrule) {
-		$output .= "if (ref(\$item[$ind])) { my \$i=\$item[$ind]; \$val.=\$i->{val}; \$obj->{rules}{$subrule}=\$i; } else { \$val.=\$item[$ind]; }";
+	    #$output .= "if (ref(\$item[$ind])) { \$val.=\$item[$ind]->{val}; } else { \$val.=\$item[$ind]; }";
+	    if ($sName) {
+		$output .= "\$val.=\$item[$ind]->{val};";
+		if ($sKeep eq "once") {
+		    $output .= " \$obj->{rules}{$sName}=\$item[$ind];";
+		} elsif ($sKeep eq "all") {
+		    $output .= " \$obj->{rules}{$sName}||=[]; push(\@{\$obj->{rules}{$sName}}, \$item[$ind]);";
+		}
+		if (!$sParse) { # Not adding a new level of parse, so flatten rules
+		    $output .= "${indent}foreach my \$j (keys \%{\$item[$ind]->{rules}}) {"
+			      ."${indent}\tmy \$o=\$item[$ind]->{rules}{\$j};"
+			      ."${indent}\tif (ref(\$o) eq \"ARRAY\") { \$obj->{rules}{\$j}||=[]; push(\@{\$obj->{rules}{\$j}}, \$o); }"
+			      ."${indent}\telse { \$obj->{rules}{\$j}=\$o; } }";
+		}
 	    } else {
-		$output .= "if (ref(\$item[$ind])) { my \$i=\$item[$ind]; \$val.=\$i->{val}; } else { \$val.=\$item[$ind]; }";
+		$output .= "\$val.=\$item[$ind];";
 	    }
 	} else {
-	    #$output .= " \$val.=join('', \@{\$item[$ind]});"
-	    if ($subrule) {
-		$output .= "foreach my \$i (\@{\$item[$ind]}) { if(ref(\$i)){ \$val.=\$i->{val}; \$obj->{rules}{$subrule}=\$i; } else { \$val.=\$i; } }";
+	    #$output .= "foreach my \$i (\@{\$item[$ind]}) { if(ref(\$i)){ \$val.=\$i->{val}; } else { \$val.=\$i; }";
+	    if ($sName) {
+		$output .= "foreach my \$i (\@{\$item[$ind]}) { \$val.=\$i->{val};";
+		if ($sKeep eq "once") {
+		    $output .= " \$obj->{rules}{$sName}=\$i;";
+		} elsif ($sKeep eq "all") {
+		    $output .= " \$obj->{rules}{$sName} ||= []; push(\@{\$obj->{rules}{$sName}}, \$i);";
+		}
+		if (!$sParse) { # Not adding a new level of parse, so flatten rules
+		    $output .= "${indent}\tforeach my \$j (keys \%{\$i->{rules}}) {"
+			      ."${indent}\t\tmy \$o=\$i->{rules}{\$j};"
+			      ."${indent}\t\tif (ref(\$o) eq \"ARRAY\") { \$obj->{rules}{\$j}||=[]; push(\@{\$obj->{rules}{\$j}}, \$o); }"
+			      ."${indent}\t\telse { \$obj->{rules}{\$j}=\$o; } }";
+		}
+		$output .= " }";
 	    } else {
-		$output .= "foreach my \$i (\@{\$item[$ind]}) { if(ref(\$i)){ \$val.=\$i->{val}; } else { \$val.=\$i; } }";
+		$output .= "foreach my \$i (\@{\$item[$ind]}) { \$val.=\$i; }";
 	    }
 	}
 	$ind++;
@@ -260,11 +309,7 @@ sub _dumpParseFunction {
     ($self->grammar()->rule($ruleName) == $self->rule()) or confess("%Error:  Internal error!  Cannot find our Rule \"$ruleName\" on our RandGen!");
     #$output .= " \$thisparser->{local}{grammar}->rule(\"$ruleName\")->production($prodNum);";
     $output .= $indent.'$obj->{val}=$val; $obj->{len}=length($val);';
-    if (defined($self->rule()->{parse})) {
-	$output .= ' $return=$obj; }';
-    } else {
-	$output .= ' $return=$val; }';
-    }
+    $output .= ' $return=$obj; }';
     return $output;
 }
 
@@ -280,8 +325,6 @@ __END__
 Parse::RandGen::Production - Conditions for rule to match (and the action to take if it does)
 
 =head1 DESCRIPTION
-
-=over 4
 
 A Production defines a set of Conditions that must be satisfied for
 a Rule to match input text.  The Production consists of an ordered list
@@ -324,7 +367,9 @@ can manage the greediness of their matching in order to get the desired effect.
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new Production.  The arguments are all named pairs.  The only required pair is "cond" => condition.
 The Production can be named with the "name" argument (accessed by the name() accessor).
@@ -335,19 +380,19 @@ Any unknown named arguments are treated as user-defined fields.  They are stored
                                    cond => q{'Request:'},
                                    cond => qr/(\s*\w+\s*[,$]+)/ );
 
-=head2 rule
+=item rule
 
 Returns the Parse::RandGen::Rule object that this Production belongs to.
 
-=head2 grammar
+=item grammar
 
 Returns the Parse::RandGen::Grammar object that this Production belongs to (returns rule()->grammar()).
 
-=head2 check
+=item check
 
 Checks the Production to verify that all subrules can be found in the RandGen.
 
-=head2 conditions
+=item conditions
 
 Returns a list with the Production's Conditions.
 

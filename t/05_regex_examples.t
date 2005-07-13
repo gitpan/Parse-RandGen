@@ -1,6 +1,10 @@
-#!/usr/local/bin/perl -w
-# $Revision: #1 $$Date: 2003/08/20 $$Author: wsnyder $
+#!/usr/bin/perl -w
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 # DESCRIPTION: Perl ExtUtils: Type 'make test' to test this package
+#
+# Copyright 2003-2005 by Jeff Dutton.  This program is free software;
+# you can redistribute it and/or modify it under the terms of either the GNU
+# General Public License or the Perl Artistic License.
 
 use strict;
 use Data::Dumper;

@@ -1,5 +1,9 @@
-# $Revision: #3 $$Date: 2003/08/20 $$Author: wsnyder $
+# $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
 # DESCRIPTION: Perl ExtUtils: Type 'perl Makefile.PL' to create a Makefile for this package
+#
+# Copyright 2003-2005 by Jeff Dutton.  This program is free software;
+# you can redistribute it and/or modify it under the terms of either the GNU
+# General Public License or the Perl Artistic License.
 
 require 5.005;
 use ExtUtils::MakeMaker;
@@ -9,7 +13,7 @@ $DOLLAR = '$$';	# Quoted properly for make
 sub MY::postamble {
 "
 README: readme.texi
-	-rm \$@
+	-rm -f \$@
 	makeinfo \$< --output \$@ --no-headers --no-validate
 
 clean::
@@ -19,10 +23,13 @@ dist: maintainer-copy distcheck README
 
 ## Maintainer use:
 tag:
-	p4 label -d     \$(DISTNAME)_\$(VERSION_SYM) || true
-	p4 label        \$(DISTNAME)_\$(VERSION_SYM)
-	p4 labelsync -l \$(DISTNAME)_\$(VERSION_SYM) ...
-#	cvs tag -F \$(DISTNAME)_\$(VERSION_SYM) .
+	c4 label -d     \$(DISTNAME)_\$(VERSION_SYM) || true
+	c4 label        \$(DISTNAME)_\$(VERSION_SYM)
+	c4 labelsync -l \$(DISTNAME)_\$(VERSION_SYM) ...
+#	cvs tag -F      \$(DISTNAME)_\$(VERSION_SYM) .
+
+maintainer-diff:
+	c4 diff     ...@\$(DISTNAME)_\$(VERSION_SYM) 
 
 maintainer-dist: dist tag
 	mv \$(DISTVNAME).tar.gz \$(HOME)/src/kits
@@ -38,7 +45,7 @@ maintainer-clean: distclean
 WriteMakefile(
 	      DISTNAME  => 'Parse-RandGen',
 	      NAME      => 'Parse::RandGen',
-	      AUTHOR	=> 'Jeff Dutton <jeff_dutton@hotmail.com>',
+	      AUTHOR	=> 'Jeff Dutton <jdutton@cpan.org>',
 	      ABSTRACT  => 'Generate random parse data for regexp or BNF grammar',
 	      VERSION_FROM  => 'RandGen.pm',
 	      PMLIBDIRS => ['lib', 'Parse', 'RandGen',],

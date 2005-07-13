@@ -1,7 +1,7 @@
-# $Revision: #3 $$Date: 2003/08/20 $$Author: wsnyder $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -22,6 +22,7 @@ package Parse::RandGen::Regexp;
 require 5.006_001;
 use Carp;
 use Parse::RandGen;
+use Data::Dumper; # FIX - debug only
 use YAPE::Regex;
 use strict;
 use vars qw(@ISA $Debug %_Yterm);
@@ -70,11 +71,66 @@ sub dump {
 sub pick {
     my $self = shift or confess ("%Error:  Cannot call without a valid object!");
     my %args = ( match=>1, # Default is to pick matching data
+		 captures=>{ },  # Captures that are being explicitly specified
 		 @_ );
-    my $val = $self->{_rule}->pick(%args);
-    my $elem = $self->element();
-    #print ("Parse::RandGen::Regexp($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
+    my $vals = { };
+    foreach my $cap (keys %{$args{captures}}) {
+	my $ruleRef = $self->capture($cap)
+	    or confess("%Error:  Regexp::pick():  Unknown capture field ($cap)!\n");
+	$vals->{$ruleRef} = $args{captures}{$cap};
+    }
+    delete $args{captures};
+    my $val = $self->{_rule}->pick(%args, vals=>$vals);
+    if (0) {
+	my $elem = $self->element();
+	print ("Parse::RandGen::Regexp($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
+    }
     return($val);
+}
+
+sub numCaptures {
+    my $self = shift or confess ("%Error:  Cannot call without a valid object!");
+    return 0 unless defined($self->{_captureList});
+    my @caps = @{$self->{_captureList}};
+    return ($#caps + 1);
+}
+
+sub capture {
+    my $self = shift or confess ("%Error:  Cannot call without a valid object!");
+    my $capture = shift;
+    defined($capture) and ($capture =~ m/^(\d+)|([a-z]\w*)$/i)
+	or confess("%Error:  Capture identifier of \"".(defined($capture)?$capture:"[undef]")."\" is not valid!\n");
+    my $num = $1;
+    my $name = $2;
+
+    if (defined($num)) {
+	my $numCaptures = $self->numCaptures();
+	($num >= 1) and ($num <= $numCaptures)
+	    or confess("%Error:  Regexp::capture():  Capture number $num is invalid (only captures 1..$numCaptures exist for this Regexp)!\n");
+	return $self->{_captureList}[$num-1];
+    } else {
+	defined($self->{_captureNames}) and defined($self->{_captureNames}{$name})
+	    or confess("%Error:  Regexp::capture():  Cannot find named capture \"$name\"!\n");
+	return $self->{_captureNames}{$name};
+    }
+}
+
+sub nameCapture {
+    my $self = shift or confess ("%Error:  Cannot call without a valid object!");
+    my %args = @_;  # "capture# => name" pairs
+    $self->{_captureNames} = { } unless defined($self->{_captureNames});
+    foreach my $capNum (keys %args) {
+	defined($capNum) and ($capNum =~ m/\d+/)
+	    or confess("%Error:  Regexp::nameCapture():  Capture number specified is invalid ($capNum)!\n");
+	my $numCaptures = $self->numCaptures();
+	($capNum >= 1) and ($capNum <= $numCaptures)
+	    or confess("%Error:  Regexp::nameCapture():  Cannot name capture number $capNum (only captures 1..$numCaptures exist for this Regexp)!\n");
+
+	my $ruleName = $args{$capNum};
+	my $rule = $self->{_captureList}[$capNum];
+	$rule->{_name} = $ruleName;  # Name the rule (does not get registered with the grammar - is that OK?)
+	$self->{_captureNames}{$ruleName} = $rule; # For lookup within the Regexp object via "capture()" function
+    }
 }
 
 # YAPE::Regex elements that are supported as CharClass objects
@@ -123,8 +179,12 @@ sub _parseRegexp {
 		my $prod = Parse::RandGen::Production->new();
 		my $rule = Parse::RandGen::Rule->new();
 		$rule->addProd($prod);
+		if ($elemType eq "YAPE::Regex::capture") {
+		    $self->{_captureList} = [ ] unless ($self->{_captureList});
+		    push(@{$self->{_captureList}}, $rule);
+		}
 
-		#print "jeff: creating a subrule (elem=>$rule, quant=>$quant, greedy=>$greedy)\n";
+		#print "Creating a subrule (elem=>$rule, quant=>$quant, greedy=>$greedy)\n" if $Debug;
 		$cur{prod}->addCond(Parse::RandGen::Subrule->new($rule, quant=>$quant, greedy=>$greedy));
 
 		my %next = %cur;
@@ -137,6 +197,7 @@ sub _parseRegexp {
 	}
     } elsif ( ($yType eq "YAPE::Regex::whitespace")
 	      || ($yType eq "YAPE::Regex::anchor")
+	      || ($yType eq "YAPE::Regex::comment")
 	      ){
 	# Do nothing, simply ignore these objects
     } else {
@@ -209,23 +270,58 @@ Parse::RandGen::Regexp - Regular expression Condition element.
 
 =head1 DESCRIPTION
 
-=over 4
-
 Regexp is a Condition element that matches the given compiled regular expression.  For picking random
 data, the regular expression is parsed into its component Subrules, Literals, CharClasses, etc....
 Therefore, the pick functionality for a regular expression is ultimately the same as the pick functionality
 of a Rule (including the limitations w/r to greediness - see Rule).
 
+Regexp is also useful as a standalone class.  It supports captures (named and indexed), which can be
+referenced in a call to the pick() function to force the captures to match the specified data, while
+leaving the rest of the data to be generated randomly.
+
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new Regexp.  The first argument (required) is the regular expression element (e.g. qr/foo(bar|baz)+\d{1,10}/).
 All other arguments are named pairs.
 
-=head2 element
+=item element
 
 Returns the Regexp element (i.e. the compiled regular expression itself).
+
+=item numCaptures
+
+Returns the number of captures (e.g. $1, $2, ...$n) in the regular expression.
+
+=item nameCapture
+
+Give names to capture numbers for the regular expression.  The arguments to this
+function are capture# => "name" pairs (e.g. nameCapture(1=>"directory", 2=>"file", 3=>"extension")).
+
+=item capture
+
+Returns the Rule object that represents the specified capture.  The capture can
+be specified by number or by name (the name is set by the nameCapture() function).
+
+=item pick
+
+Randomly generate data (text) that matches (or does not) this regular expression.
+
+Takes a "match" boolean argument that specifies whether to match the regular expression
+or deliberately not match it.
+
+Also takes a "captures" hash argument that has pairs of capture numbers (or names) and their
+desired value.  This allows the generated data to have user-specified constraints
+while allowing the rest of the regular expression to choose random data.  If "match" is
+false, the user-specified "captures" values are still used (which may cause the data
+to match even though it was not supposed to).
+
+    Example:
+        $re->pick(match=>1,
+                  captures=>{ 1=>"http", 2=>"www", 3=>"yahoo", 4=>"com" });
 
 =back
 

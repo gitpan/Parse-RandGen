@@ -1,7 +1,7 @@
-# $Revision: #3 $$Date: 2003/08/20 $$Author: wsnyder $
+# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
 ######################################################################
 #
-# This program is Copyright 2003 by Jeff Dutton.
+# This program is Copyright 2003-2005 by Jeff Dutton.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either the GNU General Public License or the
@@ -169,15 +169,13 @@ Parse::RandGen::Grammar - Module for defining a language/protocol grammar
 
 =head1 DESCRIPTION
 
-=over 4
-
 The purpose of this module is to build a grammar description that can
 then be used to build:
 
 (1) a parser using Parse::RecDescent
 
 (2) a stimulus generator that creates valid (and interesting invalid)
-tests of the grammer.
+tests of the grammar.
 
 Be aware of the greediness of the underlying parsing mechanism (RecDescent).
 See Parse::RandGen::Production for examples on how greediness can affect
@@ -185,23 +183,25 @@ errors in grammars.
 
 =head1 METHODS
 
-=head2 new
+=over 4
+
+=item new
 
 Creates a new grammar.  The grammar name is the only required argument.
 
-=head2 name
+=item name
 
 Return the name of the grammar.
 
-=head2 rule
+=item rule
 
 Access an existing Rule object by name.  Returns undef if the Rule is not found.
 
-=head2 defineRule
+=item defineRule
 
 Define a Rule if not already defined and return a reference to the Rule.
 
-=head2 dump
+=item dump
 
 Returns a dump of the Grammar object in Parse::RecDescent grammar format.
 

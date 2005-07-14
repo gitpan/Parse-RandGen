@@ -3,6 +3,12 @@ See the end for copying conditions.
 
 The contributors that suggested a given feature is shown in [].
 
+* Changes in Parse::RandGen 0.201 7/14/2005
+**	Added "t/15_regex_pick.t" test to the MANIFEST
+	(forgot it in 0.200)
+
+
+
 * Changes in Parse::RandGen 0.200 7/13/2005
 
 **	Fix bug in CharClass when min is specified but not max

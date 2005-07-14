@@ -15,5 +15,6 @@ RandGen/Subrule.pm
 t/00_pod.t
 t/05_regex_examples.t
 t/10_regex_pick.t
+t/15_regex_capture.t
 t/20_grammar_examples.t
 t/test_utils.pl

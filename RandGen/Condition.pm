@@ -1,4 +1,4 @@
-# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
+# $Revision: #3 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -22,10 +22,9 @@ package Parse::RandGen::Condition;
 require 5.006_001;
 use Carp;
 use Data::Dumper;
-use Parse::RandGen;
+use Parse::RandGen qw($Debug);
 use strict;
 use vars qw($Debug);
-$Debug = $Parse::RandGen::Debug;
 
 ######################################################################
 #### Creators
@@ -101,6 +100,39 @@ sub dumpVal {
     return($d->Dump());
 }
 
+sub pickRepetitions {
+    my $self = shift or confess "%Error:  Cannot call pickRepetitions without a valid object!";
+    my %args = @_;
+
+    my ($corruptCnt, $corruptData) = (0, 0);
+    if (!$args{match} && !$self->zeroOrMore()) {
+	if (int(rand(2))) {
+	    $corruptData = 1;
+	} else {
+	    $corruptCnt = 1;
+	}
+    }
+
+    my ($minCnt, $maxCnt);
+    if ($corruptCnt) {
+        if ((int(rand(2)) || !$self->max()) && $self->min()) {
+            # Choose less than the minimum count (too few)
+            ($minCnt, $maxCnt) = (0, $self->min()-1);
+        } else {
+            # Choose more than the maximum count (too many)
+            ($minCnt, $maxCnt) = ($self->max()+1, $self->max()+4);
+        }
+    } else {
+        $minCnt = $self->min() || ($self->containsVals(%args) ? 1 : 0);  # containsVals can only be true for SubRule
+        $maxCnt = $self->max() || ($minCnt + (1<<int(rand(5))));
+    }
+
+    my $matchCnt = $minCnt + int(rand($maxCnt-$minCnt+1));
+    my $badOne = $corruptData ? int(rand($matchCnt)) : undef;
+
+    return ( matchCnt => $matchCnt, badOne => $badOne );
+}
+
 #sub pick { }          # Abstract Method
 
 ######################################################################
@@ -156,7 +188,7 @@ sub quant {
     } else {
 	my $min = $self->min();
 	my $max = defined($self->max()) ? $self->max() : "";
-	if ($self->min() == $self->max()) {
+	if ($max && ($self->min() == $self->max())) {
 	    $quant = "{$max}";
 	} else {
 	    $quant = "{$min,$max}";

@@ -1,4 +1,4 @@
-# $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
+# $Revision: #4 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -20,14 +20,18 @@
 package Parse::RandGen;
 
 require 5.006_001;
-
 use Carp;
 use Data::Dumper;
 
+BEGIN {
+    require Exporter;
+    @ISA = ('Exporter');
+    @EXPORT_OK = qw($Debug);
+}
+
 use strict;
 use vars qw($VERSION $Debug);
-
-$VERSION = '0.201';
+$VERSION = '0.202';
 #$Debug = 1;  # Set to turn on debugging
 
 # Use all of the components of this package (so each module doesn't have to replicate the code)

@@ -1,4 +1,4 @@
-# $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
+# $Revision: #5 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -21,10 +21,9 @@ package Parse::RandGen::CharClass;
 
 require 5.006_001;
 use Carp;
-use Parse::RandGen;
+use Parse::RandGen qw($Debug);
 use strict;
 use vars qw(@ISA $Debug);
-$Debug = $Parse::RandGen::Debug;
 @ISA = ('Parse::RandGen::Condition');
 
 sub _newDerived {
@@ -47,31 +46,10 @@ sub pick {
     my $self = shift or confess ("%Error:  Cannot call without a valid object!");
     my %args = ( match=>1, # Default is to pick matching data
 		 @_ );
-    my ($corruptCnt, $corruptData) = (0, 0);
-    if (!$args{match} && !$self->zeroOrMore()) {
-	if (int(rand(2))) {
-	    $corruptData = 1;
-	} else {
-	    $corruptCnt = 1;
-	}
-    }
 
-    my ($minCnt, $maxCnt);
-    if ($corruptCnt) {
-	if ((int(rand(2)) || !$self->max()) && $self->min()) {
-	    # Choose less than the minimum count (too few)
-	    ($minCnt, $maxCnt) = (0, $self->min()-1);
-	} else {
-	    # Choose more than the maximum count (too many)
-	    ($minCnt, $maxCnt) = ($self->max()+1, $self->max()+4);
-	}
-    } else {
-	$maxCnt = $self->max() || ($self->min() + int(rand(32)));
-	$minCnt = $self->min();
-    }
-
-    my $matchCnt = $minCnt + int(rand($maxCnt-$minCnt+1));
-    my $badOne = $corruptData ? int(rand($matchCnt)) : undef;
+    my %result = $self->pickRepetitions(%args);
+    my $matchCnt = $result{matchCnt};
+    my $badOne = $result{badOne};
 
     my $min; my $max;
     my $val = "";
@@ -87,7 +65,10 @@ sub pick {
 	$val .= substr($self->{_charset}, $chrOffset, 1);
     }
     my $elem = $self->element();
-    #print ("Parse::RandGen::CharClass($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
+    if ($Debug) {
+	print("Parse::RandGen::CharClass($elem)::pick(match=>$args{match}, matchCnt=>$matchCnt, badOne=>".(defined($badOne)?$badOne:"undef")
+	      ." with value of ".$self->dumpVal($val)."\n");
+    }
     return ($val);
 }
 

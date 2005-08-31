@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
+# $Revision: #3 $$Date: 2005/08/12 $$Author: jd150722 $
 # DESCRIPTION: Perl ExtUtils: Type 'make test' to test this package
 #
 # Copyright 2003-2005 by Jeff Dutton.  This program is free software;
@@ -31,7 +31,7 @@ use Parse::RandGen;
 	print "Here is a random path: <" . $grammar->rule("path")->pick() . ">\n";
     }
     print "\nPicking partially constrained paths...\n";
-    foreach my $i (0..5) {
+    foreach my $i (0..20) {
 	print "Here is a random path: <" . $grammar->rule("path")->pick(vals=>{ token=>"foo", }) . ">\n";
     }
     ok(1);

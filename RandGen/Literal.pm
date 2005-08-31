@@ -1,4 +1,4 @@
-# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
+# $Revision: #3 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -21,10 +21,9 @@ package Parse::RandGen::Literal;
 
 require 5.006_001;
 use Carp;
-use Parse::RandGen;
+use Parse::RandGen qw($Debug);
 use strict;
-use vars qw(@ISA $Debug $ValidLiteralRE);
-$Debug = $Parse::RandGen::Debug;
+use vars qw(@ISA $ValidLiteralRE $Debug);
 @ISA = ('Parse::RandGen::Condition');
 
 # This regular expression defines whether a given regexp condition is valid (i.e. can be understood by the Condition module)
@@ -56,10 +55,11 @@ sub pick {
     my $length = length($self->element());
     confess "Literal length is 0!  This should never be!\n" unless ($length);
 
-    while (!$args{match} && $keepTrying--) {
+    my ($method, $char);
+    while (!$args{match} && $keepTrying-- && ($val eq $self->element())) {
 	$val = $self->element();  # Reset to element before each corruption attempt
-	my $method = int(rand(4));  # Method of corruption
-	my $char = int(rand($length));  # Which character
+	$method = int(rand(4));  # Method of corruption
+	$char = int(rand($length));  # Which character
 
 	if ($method == 0) {
 	    # Try changing the case of first character
@@ -67,7 +67,7 @@ sub pick {
 	    substr($val, $char, 1) = uc(substr($val, $char, 1)) unless ($val ne $self->element());
 	} elsif ($method == 1) {
 	    # Randomly change the value of one of the characters
-	    substr($val, $char, 1) = chr( (ord(substr($val, $char, 1)) + int(rand(256))) % 256 ) unless ($val ne $self->element());
+	    substr($val, $char, 1) = chr( (ord(substr($val, $char, 1)) + int(rand(256))) % 256 );
 	} elsif ($method == 2) {
 	    # Insert a random character into the literal
 	    $char = int(rand($length+1));  # Where to insert character
@@ -79,7 +79,13 @@ sub pick {
     }
 
     my $elem = $self->element();
-    #print ("Parse::RandGen::Literal($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
+    if ($Debug) {
+	if ($args{match}) {
+	    print ("Parse::RandGen::Literal($elem)::pick(match=>$args{match}) with value of ", $self->dumpVal($val), "\n");
+	} else {
+	    print ("Parse::RandGen::Literal($elem)::pick(match=>$args{match}, method=>$method, char=>$char) with value of ", $self->dumpVal($val), "\n");
+	}
+    }
     return ($val);
 }
 

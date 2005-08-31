@@ -1,4 +1,4 @@
-# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
+# $Revision: #4 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -21,10 +21,9 @@ package Parse::RandGen::Subrule;
 
 require 5.006_001;
 use Carp;
-use Parse::RandGen;
+use Parse::RandGen qw($Debug);
 use strict;
 use vars qw(@ISA $Debug);
-$Debug = $Parse::RandGen::Debug;
 @ISA = ('Parse::RandGen::Condition');
 
 sub _newDerived {  }   # Nothing to do
@@ -70,15 +69,21 @@ sub pick {
     my $rule = $self->subrule();
     my $ruleName = $self->element();
     defined($rule) or confess("Subrule::pick():  $ruleName subrule cannot be found in the grammar!\n");
-    my $maxCnt = $self->max() || (1<<int(rand(3)));
-    my $minCnt = $self->min() || ($self->containsVals(%args) ? 1 : 0);
-    my $matchCnt = $minCnt + int(rand($maxCnt-$minCnt+1));
+
+    my %result = $self->pickRepetitions(%args);
+    my $matchCnt = $result{matchCnt};
+    my $badOne = $result{badOne};
+
     my $val = "";
     for (my $i=0; $i<$matchCnt; $i++) {
-	my $matchThis = ($args{match} || ($i != 0))?1:0;
-	$val .= $rule->pick(%args, match=>$matchThis);
+	my $matchThis = (defined($badOne) && ($i==$badOne))?0:1;  # Only don't match for corrupted data
+	my $specifiedVals = ($matchThis && ($i==($matchCnt-1))) ? $args{vals} : { }; # Only specify rules for last capture value
+	$val .= $rule->pick(%args, match=>$matchThis, vals => $specifiedVals);
     }
-    #print ("Parse::RandGen::Subrule::pick(match=>$args{match}) on the rule \"", $rule->dumpHeir(), "\" has a value of ", $self->dumpVal($val), "\n");
+    if ($Debug) {
+	print("Parse::RandGen::Subrule::pick(match=>$args{match}, matchCnt=>$matchCnt, badOne=>".(defined($badOne)?$badOne:"undef")
+	      .") on the rule \"".$rule->dumpHeir()."\" has a value of ".$self->dumpVal($val)."\n");
+    }
     return ($val);
 }
 

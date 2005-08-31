@@ -1,4 +1,4 @@
-# $Revision: #1 $$Date: 2005/04/28 $$Author: nautsw $
+# $Revision: #3 $$Date: 2005/08/31 $$Author: jd150722 $
 ######################################################################
 #
 # This program is Copyright 2003-2005 by Jeff Dutton.
@@ -22,7 +22,7 @@ package Parse::RandGen::Grammar;
 require 5.006_001;
 use Carp;
 use Data::Dumper;
-use Parse::RandGen;
+use Parse::RandGen qw($Debug);
 use strict;
 use vars qw($Debug);
 

@@ -1,5 +1,5 @@
 \input texinfo @c -*-texinfo-*-
-@c $Revision: #2 $$Date: 2005/06/27 $$Author: jd150722 $
+@c $Revision: #3 $$Date: 2005/07/18 $$Author: jd150722 $
 @c %**start of header
 @setfilename readme.info
 @settitle Parse::RandGen Installation
